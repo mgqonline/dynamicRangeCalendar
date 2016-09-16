@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>动态日历</title>
+    <meta charset="UTF-8" content="text/html">
+    <style type="text/css">
+        table{border:1px solid white;}
+        thead tr{background-color:#dfe0e4;}
+        thead tr td{text-align:center;}
+        #calendar tr td{color: #000000;text-decoration: none;background-color:#EFEFEF;text-align:center;}
+    </style>
+    <link rel="stylesheet" href="jquery-ui.css">
+    <script src="jquery.js"></script>
+    <script src="jquery-ui.js"></script>
+</head>
+<body>
+开始时间:<input type="text" id="startDate">
+结束时间：<input type="text" id="endDate" onblur="changeRangeCalendar()">
+<div style="width:800px;margin:0 auto;">
+<table width="100%" border="1" cellspacing="0" cellpadding="1">
+    <thead>
+    <tr>
+        <td><input type='checkbox' name='chkDay1'>日</td>
+        <td><input type='checkbox' name='chkDay2'>一</td>
+        <td><input type='checkbox' name='chkDay3'>二</td>
+        <td><input type='checkbox' name='chkDay4'>三</td>
+        <td><input type='checkbox' name='chkDay5'>四</td>
+        <td><input type='checkbox' name='chkDay6'>五</td>
+        <td><input type='checkbox' name='chkDay7'>六</td>
+    </tr>
+    </thead>
+    <tbody id="calendar"></tbody>
+</table>
+</div>
+</body>
+<script type="text/javascript">
+    (function(){
+        var date = new Date();
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        var day = date.getDate();
+
+        $( "#startDate" ).datepicker({
+            defaultDate: "+1w",
+            dateFormat:"yy-mm-dd",
+            changeMonth: true,
+            numberOfMonths: 3,
+            onClose: function( selectedDate ) {
+                $( "#endDate" ).datepicker( "option", "minDate", selectedDate );
+            }
+        });
+        $( "#endDate" ).datepicker({
+            defaultDate: "+1w",
+            dateFormat:"yy-mm-dd",
+            changeMonth: true,
+            numberOfMonths: 3,
+            onClose: function( selectedDate ) {
+                $( "#startDate" ).datepicker( "option", "maxDate", selectedDate );
+            },
+            onSelect:function (dateText, inst) {
+                var startDate = $("#startDate").val();
+                if(startDate == "" || startDate == null){
+                    alert("开始日期为空");
+                    return false;
+                }
+                showRangeCalendar(startDate,dateText);
+            }
+        });
+
+        $("input[type='checkbox']").click(function(){
+            var chkName = $(this).attr("name");
+            $("input[name="+chkName+"]").prop("checked",$(this).prop("checked"));
+        })
+        //显示当前月日历
+        showCalendar(year, month);
+    })();
+
+    //得到每月的天数
+    function getDaysOfMonth(year, month){
+        if(year && month){
+            if(month == 2){
+                //2月闰年判断
+                if((year % 4 == 0 && year % 100 !=0) || year % 400 == 0){
+                    return 29;
+                }
+                return 28;
+            }
+            var bigMonth = [1,3,5,7,8,10,12];
+            var littleMonth = [4,6,9,11];
+            for(var m in bigMonth){
+                if(bigMonth[m] == month)
+                    return 31;
+            }
+            for(var m in littleMonth) {
+                if(littleMonth[m] == month)
+                    return 30;
+            }
+        }
+    }
+
+    //根据年月生成日历
+    function showCalendar(year, month){
+        if(year && month){
+            var tbody = document.getElementById("calendar");
+            //生成前删除之前的行
+            for(var i = 0,len =tbody.rows.length;i< len;i++){
+                tbody.deleteRow(0);
+            }
+            var date = new Date(year, month - 1, 1);//month月的第一天
+            var day = date.getDay();//星期
+            var days = getDaysOfMonth(year, month);//month月的总天数
+            var temp = Math.floor((days + day) / 7);
+            var rows = (days + day) % 7 == 0 ? temp : (temp + 1);//要循环的行数
+            var d = 1;
+            var monthTR = document.createElement("tr");
+            var monthTD = document.createElement("td");
+            monthTD.setAttribute("colspan","7");
+            monthTD.setAttribute("style","text-align:left;background:gray;color:white");
+            monthTD.innerText=year+"年"+month+"月";
+            monthTR.appendChild(monthTD);
+
+            tbody.appendChild(monthTR);
+            for(var i = 1; i <= rows; i++){//循环行
+                var tr = document.createElement("tr");
+                for(var j = 1; j <= 7; j++){//循环列
+                    var td = document.createElement("td");
+                    //超过最大天数赋空
+                    if(d > days){
+                        td.innerHTML = "";
+                        tr.appendChild(td);
+                        continue;
+                    }
+                    if(i == 1){
+                        //第一行判断month月第一天是星期几，例如星期二前面空两个周日、周一
+                        if(j >= day + 1){
+                            var html = "<input type='checkbox' name='chkDay"+j+"'>";
+                            td.innerHTML = html + (d < 10 ? "0" + d : d);
+                            d++;
+                        }else{
+                            td.innerHTML = "";
+                        }
+                    } else {
+                        var html = "<input type='checkbox' name='chkDay"+j+"'>";
+                        td.innerHTML = html + (d < 10 ? "0" + d : d);
+                        d++;
+                    }
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+        }
+    }
+
+    function showRangeCalendar(startDate,endDate){
+        if(startDate && endDate){
+            var tbody = document.getElementById("calendar");
+            //生成前删除之前的行
+            for(var i = 0,len =tbody.rows.length;i< len;i++){
+                tbody.deleteRow(0);
+            }
+            var splitStartDate = startDate.split("-");
+            var currStartYear = splitStartDate[0];
+            var currStartMonth = splitStartDate[1];
+            var currStartDay = splitStartDate[2];
+            var splitEndDate = endDate.split("-");
+            var currEndYear = splitEndDate[0];
+            var currEndMonth = splitEndDate[1];
+            var currEndDay = splitEndDate[2];
+
+            var compareStartDate = new Date(currStartYear,currStartMonth-1,currStartDay);
+            var compareEndDate = new Date(currEndYear,currEndMonth-1,currEndDay);
+
+            var arrMonth = getRangeDateMonths(compareStartDate,compareEndDate);
+            var days = dateDiff(compareEndDate, compareStartDate);//获取日期范围内总天数
+            var totalDays = 0;
+            for(var k=0;k<arrMonth.length;k++) {
+                var monthTR = document.createElement("tr");
+                var monthTD = document.createElement("td");
+                monthTD.setAttribute("colspan", "7");
+                monthTD.setAttribute("style", "text-align:left;background:gray;color:white");
+                var currYear = arrMonth[k].split("-")[0];
+                var currMonth = arrMonth[k].split("-")[1];
+                monthTD.innerText = currYear + "年" + currMonth + "月";
+                monthTR.appendChild(monthTD);
+                tbody.appendChild(monthTR);
+                var intDay;
+                var realMonthDate;
+                if(k==0){
+                    intDay = Math.floor(currStartDay);
+                    //注意月份要减一，不然取星期几会取到下一个月对应日期的星期几
+                    realMonthDate = new Date(currYear, currMonth - 1, currStartDay);
+                }else{
+                    intDay = 1;
+                    //注意月份要减一，不然取星期几会取到下一个月对应日期的星期几
+                    realMonthDate = new Date(currYear,currMonth-1,1);
+                }
+                //获取当前月份总天数
+                var currMonthDays = getDaysOfMonth(currYear,currMonth);
+                totalDays += currMonthDays;
+                var monthDays ;
+                //如果当前循环为最后日期月份，则获取最后日期对应月份的天数
+                var endMonthDays =0;
+                if(currStartMonth == currEndMonth){
+                    monthDays = Math.floor(currEndDay) - Math.floor(currStartDay) + 1;
+                }else if(currStartMonth != currEndMonth && currMonth != currEndMonth){
+                    monthDays  = currMonthDays - intDay + 1;//获取指定月份天数
+                }else if(currStartMonth != currEndMonth && currMonth == currEndMonth){
+                    endMonthDays = Math.floor(currEndDay);
+                    monthDays = endMonthDays;//获取指定月份天数
+                }
+
+                var day = realMonthDate.getDay();
+                var temp = Math.floor((monthDays + day)/7);
+                var rows = (monthDays + day) % 7 == 0 ? temp : (temp + 1);//要循环的行数
+                for(var i = 1; i <= rows; i++){//循环行
+                    var tr = document.createElement("tr");
+                    for(var j = 1; j <= 7; j++){//循环列
+                        var td = document.createElement("td");
+
+                        //超过当前月份总天数，跳出当前循环
+                        if(intDay > currMonthDays){
+                            td.innerHTML = "";
+                            tr.appendChild(td);
+                            continue;
+                        }
+                        if(i == 1){
+                            //第一行判断month月第一天是星期几，例如星期二前面空两个周日、周一
+                            if(j >= day + 1){
+                                var html = "<input type='checkbox' name='chkDay"+j+"'>";
+                                td.innerHTML = html + (intDay < 10 ? "0" + intDay : intDay);
+                                intDay++;
+                            }else{
+                                td.innerHTML = "";
+                            }
+                        } else {
+                            var html = "<input type='checkbox' name='chkDay"+j+"'>";
+                            td.innerHTML = html + (intDay < 10 ? "0" + intDay : intDay);
+                            intDay++;
+                        }
+                        tr.appendChild(td);
+                    }
+                    tbody.appendChild(tr);
+                }
+            }
+        }
+    }
+    function changeRangeCalendar(){
+        var startDate = document.getElementById("startDate").value;
+        var endDate = document.getElementById("endDate").value;
+        showRangeCalendar(startDate,endDate);
+    }
+
+    function dateDiff(date1, date2) {
+        var type1 = typeof date1, type2 = typeof date2;
+        if (type1 == 'string')
+            date1 = stringToTime(date1);
+        else if (date1.getTime)
+            date1 = date1.getTime();
+        if (type2 == 'string')
+            date2 = stringToTime(date2);
+        else if (date2.getTime)
+            date2 = date2.getTime();
+        return (date1 - date2) / (1000 * 60 * 60 * 24); //结果是天
+    }
+    //字符串转成Time(dateDiff)所需方法
+    function stringToTime(string) {
+        var f = string.split(' ', 2);
+        var d = (f[0] ? f[0] : '').split('-', 3);
+        var t = (f[1] ? f[1] : '').split(':', 3);
+        return (new Date(
+                parseInt(d[0], 10) || null,
+                (parseInt(d[1], 10) || 1) - 1,
+                parseInt(d[2], 10) || null,
+                parseInt(t[0], 10) || null,
+                parseInt(t[1], 10) || null,
+                parseInt(t[2], 10) || null
+        )).getTime();
+    }
+
+    //根据指定日期得到idx天后的日期值，idx表是往后推多少天
+    function getTargetDate(currTextDate,idx){
+        var convertDate = new Date(currTextDate);
+        convertDate = +convertDate + 1000*60*60*24*indx;
+        var targetDate = new Date(convertDate);
+        return targetDate.getFullYear()+"-"+(targetDate.getMonth()+1)+"-"+targetDate.getDate();
+    }
+
+    //得到日期范围所对应的月份数组
+    function getRangeDateMonths(startDate,endDate){
+        var startYear = startDate.getFullYear();//获取开始日期年份
+        var endYear = endDate.getFullYear();//获取结束日期年份
+        var startmonths = startDate.getMonth() +1;
+        var endmonths = endDate.getMonth()+1;
+        endmonths = endmonths + 12*(endYear - startYear);
+        var submonth = endmonths - startmonths + 1;//注意这里加1是表示要加上自己开始本身的月份，例如：09到10月是表示两个月
+        var arr = [];
+        for(var i=0;i< submonth;i++){
+            var months = startmonths + i;
+            if(months <= 12){
+                if(months < 10){
+                    months = startYear + "-0"+months;
+                }else{
+                    months = startYear + "-"+months;
+                }
+            }else{
+                months  = months - 12;
+                if(months  < 10){
+                    months = "0"+months;
+                }
+                months = (startYear + 1) +"-"+ months;
+            }
+            arr.push(months);
+        }
+        return arr;
+    }
+</script>
+</html>
